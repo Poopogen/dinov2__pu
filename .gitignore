@@ -9,3 +9,12 @@ dist/
 *.swp
 
 .vscode/
+
+
+*dataset*
+*output*
+
+notebooks
+pretrained_models
+scripts
+logs

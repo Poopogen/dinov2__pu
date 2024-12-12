@@ -17,10 +17,11 @@ class ClusterType(Enum):
 
 def _guess_cluster_type() -> ClusterType:
     uname = os.uname()
+    print('uname.sysname:',uname.sysname)
     if uname.sysname == "Linux":
         if uname.release.endswith("-aws"):
             # Linux kernel versions on AWS instances are of the form "5.4.0-1051-aws"
-            return ClusterType.AWS
+            return ClusterType.AWS ###
         elif uname.nodename.startswith("rsc"):
             # Linux kernel versions on RSC instances are standard ones but hostnames start with "rsc"
             return ClusterType.RSC
@@ -67,7 +68,7 @@ def get_slurm_partition(cluster_type: Optional[ClusterType] = None) -> Optional[
         ClusterType.AWS: "learnlab",
         ClusterType.FAIR: "learnlab",
         ClusterType.RSC: "learn",
-    }
+    }###AWS
     return SLURM_PARTITIONS[cluster_type]
 
 

@@ -37,10 +37,10 @@ def get_args_parser(
         "--ngpus",
         "--gpus",
         "--gpus-per-node",
-        default=8,
+        default=4,
         type=int,
         help="Number of GPUs to request on each node",
-    )
+    )#8
     parser.add_argument(
         "--nodes",
         "--nnodes",
@@ -94,6 +94,11 @@ def submit_jobs(task_class, args, name: str):
         args.output_dir = str(get_shared_folder() / "%j")
 
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+    # 使用GPU叢集(cluster)時，節點node是一台具有可變數量的GPU（或無GPU）、CPU、RAM等的機器。叢集cluster的意思是連接這些節點，並使用一些調度軟體（如Slurm或SGE）來調度一個或多個節點上的作業。
+    # 使用Submitit產生作業並將其提交給Slurm，我們需要取得一個subitit.AutoExecutor物件。
+    # 使用submitit.AutoExecuto.update_parameters函數來提供Slurm特定的參數。 Submitit將負責在GPU上產生不同的流程（即使在不同的節點上）。
+    # Slurm是用於叢集的作業排程程序，用於接受作業提交文件，並在請求的資源可用時進行排程。
+    # A partition is a collection of nodes, they may share some attributes (CPU type, GPU, etc)
     executor = submitit.AutoExecutor(folder=args.output_dir, slurm_max_num_timeout=30)
 
     kwargs = {}
@@ -112,9 +117,11 @@ def submit_jobs(task_class, args, name: str):
         slurm_partition=args.partition,
         **kwargs,
     )
+    print('kwargs:',kwargs) #empty
+    print('submitit_executor_params:',executor_params)
     executor.update_parameters(name=name, **executor_params)
-
-    task = task_class(args)
+    #print('args from submit:',args)
+    task = task_class(args) #run/train/train.py# Trainer.__init__ ## Trainer for SLURM
     job = executor.submit(task)
 
     logger.info(f"Submitted job_id: {job.job_id}")

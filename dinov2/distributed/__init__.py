@@ -197,14 +197,16 @@ class _TorchDistributedEnvironment:
     # Single node job with preset environment (i.e. torchrun)
     def _set_from_preset_env(self):
         # logger.info("Initialization from preset environment")
+        print("Initialization from preset environment")
         self.master_addr = os.environ["MASTER_ADDR"]
         self.master_port = os.environ["MASTER_PORT"]
-        self.rank = int(os.environ["RANK"])
-        self.world_size = int(os.environ["WORLD_SIZE"])
+        self.rank = int(os.environ["RANK"])##0 to 4
+        self.world_size = int(os.environ["WORLD_SIZE"]) ##4
         assert self.rank < self.world_size
-        self.local_rank = int(os.environ["LOCAL_RANK"])
-        self.local_world_size = int(os.environ["LOCAL_WORLD_SIZE"])
+        self.local_rank = int(os.environ["LOCAL_RANK"]) ##0 to 4
+        self.local_world_size = int(os.environ["LOCAL_WORLD_SIZE"]) ##4
         assert self.local_rank < self.local_world_size
+        print('Initialization: rank %i | world_size %i | self.local_rank %i | self.local_world_size %i '%(self.rank,self.world_size,self.local_rank,self.local_world_size))
 
     # Single node and GPU job (i.e. local script run)
     def _set_from_local(self):
@@ -217,6 +219,7 @@ class _TorchDistributedEnvironment:
         self.local_world_size = 1
 
     def export(self, *, overwrite: bool) -> "_TorchDistributedEnvironment":
+        print('export TorchDistributedEnvironment')
         # See the "Environment variable initialization" section from
         # https://pytorch.org/docs/stable/distributed.html for the complete list of
         # environment variables required for the env:// initialization method.
@@ -260,8 +263,11 @@ def enable(*, set_cuda_current_device: bool = True, overwrite: bool = False, all
         if not overwrite:
             _check_env_variable(key, value)
         os.environ[key] = value
-
-    dist.init_process_group(backend="nccl")
+    print('dist.init_process_group()')    
+    dist.init_process_group(backend="nccl") #建立DDP 模組，必須先正確設定進程組 #https://pytorch.apachecn.org/2.0/tutorials/intermediate/ddp_tutorial/
+    ## ???使用DDP 時，一種最佳化是將模型保存在僅一個進程中，然後將其載入到所有進程，從而減少寫入開銷。 Use a barrier() to make sure that process 1 loads the model after process 0 saves it.
+    print('dist.get_rank():',dist.get_rank())
+    
     dist.barrier()
 
     # Finalize setup

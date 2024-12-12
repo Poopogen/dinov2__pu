@@ -22,8 +22,10 @@ def apply_scaling_rules_to_cfg(cfg):  # to fix
     if cfg.optim.scaling_rule == "sqrt_wrt_1024":
         base_lr = cfg.optim.base_lr
         cfg.optim.lr = base_lr
+        # print('apply_scaling_rules_to_cfg -- distributed.get_global_size():',distributed.get_global_size()) #4
+        # cfg.optim.lr = 0.004* (64*4/1024)^2 = 0.00025
         cfg.optim.lr *= math.sqrt(cfg.train.batch_size_per_gpu * distributed.get_global_size() / 1024.0)
-        logger.info(f"sqrt scaling learning rate; base: {base_lr}, new: {cfg.optim.lr}")
+        logger.info(f"sqrt scaling learning rate; base: {base_lr}, new: {cfg.optim.lr}")##base_lr:0.004, new: 0.00025
     else:
         raise NotImplementedError
     return cfg
@@ -38,6 +40,7 @@ def write_config(cfg, output_dir, name="config.yaml"):
 
 
 def get_cfg_from_args(args):
+    #print('args.config_file:',args.config_file) #dinov2/configs/train/vitl16_short.yaml
     args.output_dir = os.path.abspath(args.output_dir)
     args.opts += [f"train.output_dir={args.output_dir}"]
     default_cfg = OmegaConf.create(dinov2_default_config)
@@ -47,10 +50,11 @@ def get_cfg_from_args(args):
 
 
 def default_setup(args):
+    print('default_setup')
     distributed.enable(overwrite=True)
     seed = getattr(args, "seed", 0)
     rank = distributed.get_global_rank()
-
+    print('distributed.get_global_rank():',rank)#0
     global logger
     setup_logging(output=args.output_dir, level=logging.INFO)
     logger = logging.getLogger("dinov2")
@@ -65,6 +69,7 @@ def setup(args):
     Create configs and perform basic setups.
     """
     cfg = get_cfg_from_args(args)
+    #print('get_cfg_from_args: ',cfg)
     os.makedirs(args.output_dir, exist_ok=True)
     default_setup(args)
     apply_scaling_rules_to_cfg(cfg)

@@ -1,0 +1,170 @@
+#pip install -U openmim #安裝最新版本，這時會提示你現在安裝的mmdetection和安裝的mmcv不符，而且會給出符合你的mmdetection版本的mmcv版本的範圍。
+#(dinov2-extras) root@cecada1-0:~/dinov2# export PYTHONPATH=$PYTHONPATH:/home/jovyan/dinov2 
+#python dinov2/run/train/train.py --nodes 1 --config-file dinov2/configs/train/vitl16_short.yaml --output-dir ./output \  train.dataset_path=ImageNet:split=TRAIN:root=./dataset:extra=./dataset_extra
+
+#interactive NVIDIA-GPU process viewer  : pip install nvitop
+#pkill -9 python
+
+# ERROR: The server socket has failed to bind to [::]:29500
+# https://blog.csdn.net/flyingluohaipeng/article/details/126899077
+#killall5 -9 ##暴力kill #https://superuser.com/questions/161531/how-to-kill-all-processes-in-linux 
+
+
+#export CUDA_VISIBLE_DEVICES=0,1,2,3 & torchrun --nproc_per_node=4 dinov2/train/train.py --config-file dinov2/configs/train/vitl16_short.yaml --output-dir ./output \  train.dataset_path=ImageNet:split=TRAIN:root=./dataset:extra=./dataset_extra
+
+
+
+
+pip install torch==2.0.0 torchvision==0.15.1 torchaudio==2.0.1
+pip install -U openmim
+mim install mmengine
+mim install mmcv-full
+
+pip install mmcv-full -f https://download.openmmlab.com/mmcv/dist/cu117/torch2.0.0/index.html
+
+
+
+mmsegmentation==0.27.0
+
+##cataract-101 : 720x540 (50528 pics)
+##cut_stream(yun_eye_dataset_image02): 1920x420 (22624)
+##ORM: 640x480  (1171 pics)
+##REFUGE2: 2124x2056  (1200 pics)
+## CATARACTS :1920x1080 (32814 pics
+## Total: 108337
+
+
+### final : 640x140
+
+
+
+#======================================#
+# export PYTHONPATH=$PYTHONPATH:/home/jovyan/dinov2
+
+#export CUDA_VISIBLE_DEVICES=0,1,2,3 & torchrun --nproc_per_node=4 dinov2/train/train.py --config-file dinov2/configs/train/vitl16_short.yaml --output-dir ./output \  train.dataset_path=EyeDatasets:split=TRAIN:root=./eye_datasets
+
+
+# export CUDA_VISIBLE_DEVICES=0,1,2,3
+# torchrun --nproc_per_node=4 dinov2/train/train.py --config-file dinov2/configs/train/vitb14_pu.yaml --output-dir ./output_vitb14_merged_various_dataset_20241127  train.dataset_path=EyeDatasets:split=TRAIN:root=./merged_various_dataset &
+
+
+# python dinov2/run/train/train.py --nodes 1 --config-file dinov2/configs/train/vitb14_pu.yaml --output-dir ./output_test train.dataset_path=EyeDatasets:split=TRAIN:root=./merged_various_dataset 
+
+
+1. train.py
+initial_args:  Namespace(config_file='dinov2/configs/train/vitl16_short.yaml', no_resume=False, eval_only=False, eval='', opts=[' ', 'train.dataset_path=EyeDatasets:split=TRAIN:root=./eye_datasets'], output_dir='./output')
+
+2. main
+
+
+dinov2.utils.config import setup
+3. setup 
+
+
+
+## ./dinov2/dinov2/train/train.py main(): cfg = setup(args)==> 
+        dinov2.utils.config.py setup(): get_cfg_from_args(cfg) ==> 
+                MERGE CONFIGS:
+                1. dinov2.utils.config.py get_cfg_from_args(cfg): dinov2.dinov2.configs.py dinov2_default_config ("ssl_default_config.yaml") + 
+                2. args.config_file: dinov2/configs/train/vitl16_short.yaml (batch_size change)
+
+    
+
+
+
+I20241024 07:01:29 22508 dinov2 config.py:27] sqrt scaling learning rate; base: 0.004, new: 0.00025
+I20241024 07:01:29 22508 dinov2 config.py:34] MODEL:
+  WEIGHTS: ''.........
+  
+    ##distributed.enable (in setup)
+    /dinov2/distributed/__init__.py
+    Initialization from preset environment
+    Initialization: rank 1 | world_size 4 | self.local_rank 1 | self.local_world_size 4 
+    export TorchDistributedEnvironment
+    Initialization from preset environment
+    Initialization: rank 2 | world_size 4 | self.local_rank 2 | self.local_world_size 4 
+    export TorchDistributedEnvironment
+    Initialization from preset environment
+    Initialization: rank 3 | world_size 4 | self.local_rank 3 | self.local_world_size 4 
+    export TorchDistributedEnvironment
+    Initialization from preset environment
+    Initialization: rank 0 | world_size 4 | self.local_rank 0 | self.local_world_size 4 
+    export TorchDistributedEnvironment
+    dist.init_process_group()
+    dist.init_process_group()
+    dist.init_process_group()
+    dist.init_process_group()
+    dist.get_rank(): 0
+    dist.get_rank(): 1
+    dist.get_rank(): 2
+    dist.get_rank(): 3
+    distributed.get_global_rank(): 0
+
+output cfg: 
+    main_args:  {'MODEL': {'WEIGHTS': ''}, 'compute_precision': {'grad_scaler': True, 'teacher': {'backbone': {'sharding_strategy': 'SHARD_GRAD_OP', 'mixed_precision': {'param_dtype': 'fp16', 'reduce_dtype': 'fp16', 'buffer_dtype': 'fp32'}}, 'dino_head': {'sharding_strategy': 'SHARD_GRAD_OP', 'mixed_precision': {'param_dtype': 'fp16', 'reduce_dtype': 'fp16', 'buffer_dtype': 'fp32'}}, 'ibot_head': {'sharding_strategy': 'SHARD_GRAD_OP', 'mixed_precision': {'param_dtype': 'fp16', 'reduce_dtype': 'fp16', 'buffer_dtype': 'fp32'}}}, 'student': {'backbone': {'sharding_strategy': 'SHARD_GRAD_OP', 'mixed_precision': {'param_dtype': 'fp16', 'reduce_dtype': 'fp16', 'buffer_dtype': 'fp32'}}, 'dino_head': {'sharding_strategy': 'SHARD_GRAD_OP', 'mixed_precision': {'param_dtype': 'fp16', 'reduce_dtype': 'fp32', 'buffer_dtype': 'fp32'}}, 'ibot_head': {'sharding_strategy': 'SHARD_GRAD_OP', 'mixed_precision': {'param_dtype': 'fp16', 'reduce_dtype': 'fp32', 'buffer_dtype': 'fp32'}}}}, 'dino': {'loss_weight': 1.0, 'head_n_prototypes': 65536, 'head_bottleneck_dim': 256, 'head_nlayers': 3, 'head_hidden_dim': 2048, 'koleo_loss_weight': 0.1}, 'ibot': {'loss_weight': 1.0, 'mask_sample_probability': 0.5, 'mask_ratio_min_max': [0.1, 0.5], 'separate_head': False, 'head_n_prototypes': 65536, 'head_bottleneck_dim': 256, 'head_nlayers': 3, 'head_hidden_dim': 2048}, 'train': {'batch_size_per_gpu': 1, 'dataset_path': 'ImageNet:split=TRAIN:root=./dataset:extra=./dataset_extra', 'output_dir': '/home/jovyan/dinov2/output', 'saveckp_freq': 20, 'seed': 0, 'num_workers': 4, 'OFFICIAL_EPOCH_LENGTH': 10, 'cache_dataset': True, 'centering': 'centering'}, 'student': {'arch': 'vit_large', 'patch_size': 16, 'drop_path_rate': 0.3, 'layerscale': 1e-05, 'drop_path_uniform': True, 'pretrained_weights': '', 'ffn_layer': 'mlp', 'block_chunks': 4, 'qkv_bias': True, 'proj_bias': True, 'ffn_bias': True, 'num_register_tokens': 0, 'interpolate_antialias': False, 'interpolate_offset': 0.1}, 'teacher': {'momentum_teacher': 0.992, 'final_momentum_teacher': 1, 'warmup_teacher_temp': 0.04, 'teacher_temp': 0.07, 'warmup_teacher_temp_epochs': 2}, 'optim': {'epochs': 5, 'weight_decay': 0.04, 'weight_decay_end': 0.4, 'base_lr': 0.004, 'lr': 0.00025, 'warmup_epochs': 2, 'min_lr': 1e-06, 'clip_grad': 3.0, 'freeze_last_layer_epochs': 1, 'scaling_rule': 'sqrt_wrt_1024', 'patch_embed_lr_mult': 0.2, 'layerwise_decay': 0.9, 'adamw_beta1': 0.9, 'adamw_beta2': 0.999}, 'crops': {'global_crops_scale': [0.32, 1.0], 'local_crops_number': 8, 'local_crops_scale': [0.05, 0.32], 'global_crops_size': 224, 'local_crops_size': 96}, 'evaluation': {'eval_period_iterations': 5}, ' ': None}
+
+
+
+
+4. print(os.environ) # 搞清torch.distributed.launch(torchrun)相關的環境變數 https://blog.csdn.net/searobbers_duck/article/details/115209880
+environ({'SHELL': '/bin/bash', 'NVIDIA_VISIBLE_DEVICES': 'GPU-ba85e0d0-942f-875e-2ea5-1acb4b5c57e8,GPU-6c26aef0-3760-570a-95b2-ed289e7af2c4,GPU-51bd36e4-207b-cb84-6d62-174bc2391938,GPU-7cef1974-9744-d710-d97d-0e392333b088', 'KUBERNETES_SERVICE_PORT_HTTPS': '443', 'ML_PIPELINE_VISUALIZATIONSERVER_PORT_8888_TCP_PROTO': 'tcp', 'KUBERNETES_SERVICE_PORT': '443', 'CONDA_EXE': '/opt/conda/bin/conda', '_CE_M': '', 'CECADA1_PORT_80_TCP_PROTO': 'tcp', 'HOSTNAME': 'cecada1-0', 'LANGUAGE': 'en_US.UTF-8', 'ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT': '8888', 'CECADA1_PORT_80_TCP_PORT': '80', 'NVIDIA_REQUIRE_CUDA': 'cuda>=11.2 brand=tesla,driver>=418,driver<419 brand=tesla,driver>=440,driver<441 brand=tesla,driver>=450,driver<451', 'XDG_DATA_HOME': '/etc/share', 'CECADA2_SERVICE_PORT': '80', 'NB_UID': '1000', 'JULIA_PKGDIR': '/opt/julia', 'CECADA2_PORT_80_TCP_PROTO': 'tcp', 'NCCL_VERSION': '2.8.4', 'EDITOR': '/usr/bin/nano', 'ML_PIPELINE_UI_ARTIFACT_PORT_80_TCP': 'tcp://10.110.121.152:80', 'PWD': '/home/jovyan/dinov2', 'NB_PREFIX': '/notebook/d000015445/cecada1', 'CONDA_PREFIX': '/home/jovyan/.conda/envs/dinov2-extras', 'NVIDIA_DRIVER_CAPABILITIES': 'compute,utility', 'JUPYTER_SERVER_URL': 'http://cecada1-0:8888/notebook/d000015445/cecada1/', 'LINES': '46', 'CECADA1_SERVICE_HOST': '10.106.163.1', 'HOME': '/home/jovyan', 'LANG': 'en_US.UTF-8', 'KUBERNETES_PORT_443_TCP': 'tcp://10.96.0.1:443', 'CS_DISABLE_FILE_DOWNLOADS': '1', 'COLUMNS': '174', 'ML_PIPELINE_UI_ARTIFACT_PORT_80_TCP_ADDR': '10.110.121.152', 'CECADA2_PORT': 'tcp://10.103.205.140:80', 'CECADA1_PORT_80_TCP_ADDR': '10.106.163.1', 'CUDA_VERSION': '11.2.0', 'NB_GID': '100', 'CONDA_PROMPT_MODIFIER': '(dinov2-extras) ', 'ML_PIPELINE_VISUALIZATIONSERVER_PORT_8888_TCP_PORT': '8888', 'ML_PIPELINE_VISUALIZATIONSERVER_PORT_8888_TCP': 'tcp://10.107.231.62:8888', 'JULIA_VERSION': '1.8.2', 'CECADA2_PORT_80_TCP_PORT': '80', 'NB_NAMESPACE': 'd000015445', 'XDG_CACHE_HOME': '/home/jovyan/.cache/', 'ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT_HTTP': '8888', 'NVIDIA_DISABLE_REQUIRE': 'true', 'JUPYTER_SERVER_ROOT': '/home/jovyan', 'PYTHONPATH': ':/home/jovyan/dinov2', 'TERM': 'xterm-256color', '_CE_CONDA': '', 'CECADA2_SERVICE_HOST': '10.103.205.140', 'GIT_EXAMPLE_NOTEBOOKS': 'https://github.com/WinterBelieve/cgu-contrib-jupyter-notebooks', 'CONDA_SHLVL': '2', 'RSERVER_WWW_ROOT_PATH': '/notebook/d000015445/cecada1/rstudio', 'VISUAL': '/usr/bin/nano', 'SHLVL': '2', 'PYXTERM_DIMENSIONS': '80x25', 'CONDA_DIR': '/opt/conda', 'KUBERNETES_PORT_443_TCP_PROTO': 'tcp', 'JULIA_DEPOT_PATH': '/opt/julia', 'ML_PIPELINE_UI_ARTIFACT_PORT_80_TCP_PROTO': 'tcp', 'CUDNN_VERSION': '8.1.1.33', 'ML_PIPELINE_VISUALIZATIONSERVER_PORT_8888_TCP_ADDR': '10.107.231.62', 'SERVICE_URL': 'https://extensions.coder.com/api', 'KUBERNETES_PORT_443_TCP_ADDR': '10.96.0.1', 'ML_PIPELINE_VISUALIZATIONSERVER_PORT': 'tcp://10.107.231.62:8888', 'ML_PIPELINE_UI_ARTIFACT_SERVICE_HOST': '10.110.121.152', 'JWT': 'eyJhbGciOiJSUzI1NiIsImtpZCI6IldkTE1DTXQ5UExpMmwtWFU2S0NjdFFaUkwxenJPbEJGZk5TTzA5b3o3aTAifQ.eyJhdWQiOlsiaHR0cHM6Ly9rdWJlcm5ldGVzLmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwiXSwiZXhwIjoxNzYwNzY3MTYxLCJpYXQiOjE3MjkyMzExNjEsImlzcyI6Imh0dHBzOi8va3ViZXJuZXRlcy5kZWZhdWx0LnN2Yy5jbHVzdGVyLmxvY2FsIiwia3ViZXJuZXRlcy5pbyI6eyJuYW1lc3BhY2UiOiJkMDAwMDE1NDQ1IiwicG9kIjp7Im5hbWUiOiJjZWNhZGExLTAiLCJ1aWQiOiIzODYyOWViYi0zODhiLTRkOTItOWY5ZS0zZTc4ODgyZGVlMWEifSwic2VydmljZWFjY291bnQiOnsibmFtZSI6ImRlZmF1bHQtZWRpdG9yIiwidWlkIjoiMDAzYjk4ZTAtZWY1ZC00YTlmLWE2MmQtYTJkN2ExODZlOWIwIn0sIndhcm5hZnRlciI6MTcyOTIzNDc2OH0sIm5iZiI6MTcyOTIzMTE2MSwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50OmQwMDAwMTU0NDU6ZGVmYXVsdC1lZGl0b3IifQ.H0368ecPIAXcHMhn5sXSe3G7WCcdpCxrOeSFU7LZPo1Tb-RTq0D4KkjRLoJz3f7_RFEdA1WRIj0JkKwHdtvmwbZaBEWLglhIzPJKH1IMKV3YwkjNK2e4AnCbsdX7I_wsDnNfDYP97xGFoE2F_sgBiaNGUcNEgBF9JjAu5lAiH7a7-F9lz6GqytU1x2RL6cpovV2jaGmNRUQP38dx7gZtt0-TmOT0LxrfdGmMGxPF--nzShqmhw95STT197NglaQULE399GLh7TuSek2XwS2t7igGxZ9SleOmG2mwb3kTr8ok0EWVNq9gr5GzfUJsw1mFJzf3BWMIm_wAvrDB70864w', 'CONDA_PYTHON_EXE': '/opt/conda/bin/python', 'LD_LIBRARY_PATH': '/usr/local/nvidia/lib:/usr/local/nvidia/lib64', 'ML_PIPELINE_UI_ARTIFACT_PORT_80_TCP_PORT': '80', 'CECADA2_SERVICE_PORT_HTTP_CECADA2': '80', 'ML_PIPELINE_UI_ARTIFACT_SERVICE_PORT_HTTP': '80', 'GIT_PYTHON_REFRESH': 'quiet', 'CONDA_DEFAULT_ENV': 'dinov2-extras', 'ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST': '10.107.231.62', 'CECADA1_PORT_80_TCP': 'tcp://10.106.163.1:80', 'CECADA1_SERVICE_PORT': '80', 'ML_PIPELINE_UI_ARTIFACT_PORT': 'tcp://10.110.121.152:80', 'NB_USER': 'jovyan', 'KUBERNETES_SERVICE_HOST': '10.96.0.1', 'LC_ALL': 'en_US.UTF-8', 'DEFAULT_JUPYTER_URL': '/lab', 'KUBERNETES_PORT': 'tcp://10.96.0.1:443', 'KUBERNETES_PORT_443_TCP_PORT': '443', 'PATH': '/home/jovyan/.conda/envs/dinov2-extras/bin:/opt/conda/condabin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/home/jovyan/.local/bin:/opt/conda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin', 'ML_PIPELINE_UI_ARTIFACT_SERVICE_PORT': '80', 'CECADA2_PORT_80_TCP_ADDR': '10.103.205.140', 'CONDA_PREFIX_1': '/opt/conda', 'CECADA2_PORT_80_TCP': 'tcp://10.103.205.140:80', 'DEBIAN_FRONTEND': 'noninteractive', 'CECADA1_PORT': 'tcp://10.106.163.1:80', 'CECADA1_SERVICE_PORT_HTTP_CECADA1': '80', '_': '/home/jovyan/.conda/envs/dinov2-extras/bin/torchrun', 'OMP_NUM_THREADS': '1', 'LOCAL_RANK': '0', 'RANK': '0', 'GROUP_RANK': '0', 'ROLE_RANK': '0', 'ROLE_NAME': 'default', 'LOCAL_WORLD_SIZE': '4', 'WORLD_SIZE': '4', 'GROUP_WORLD_SIZE': '1', 'ROLE_WORLD_SIZE': '4', 'MASTER_ADDR': '127.0.0.1', 'MASTER_PORT': '29500', 'TORCHELASTIC_RESTART_COUNT': '0', 'TORCHELASTIC_MAX_RESTARTS': '0', 'TORCHELASTIC_RUN_ID': 'none', 'TORCHELASTIC_USE_AGENT_STORE': 'True', 'NCCL_ASYNC_ERROR_HANDLING': '1', 'TORCHELASTIC_ERROR_FILE': '/tmp/torchelastic_rkj6wg59/none_heatummc/attempt_0/0/error.json', 'CUDA_MODULE_LOADING': 'LAZY'})
+
+
+5. load Model 
+# dinov2/dinov2/train/ssl_meta_arch.py class SSLMetaArch
+    ## get backbone: dinov2.models.build_model_from_cfg()
+        ### from dinov2.dinov2.models import vision_transformer as vits ==> vits.__dict__['vit_base'] ==>
+                {'__name__': 'dinov2.models.vision_transformer', '__doc__': None, '__package__': 'dinov2.models', '__loader__': <_frozen_importlib_external.SourceFileLoader object at 0x7f66bde93eb0>, '__spec__': ModuleSpec(name='dinov2.models.vision_transformer', loader=<_frozen_importlib_external.SourceFileLoader object at 0x7f66bde93eb0>, origin='/home/jovyan/dinov2/dinov2/models/vision_transformer.py'), '__file__': '/home/jovyan/dinov2/dinov2/models/vision_transformer.py',  ..............................................
+                'PatchEmbed': <class 'dinov2.layers.patch_embed.PatchEmbed'>, 'SwiGLUFFNFused': <class 'dinov2.layers.swiglu_ffn.SwiGLUFFNFused'>, 'MemEffAttention': <class 'dinov2.layers.attention.MemEffAttention'>, 'Block': <class 'dinov2.layers.block.NestedTensorBlock'>, 'logger': <Logger dinov2 (WARNING)>, 'named_apply': <function named_apply at 0x7f66bdd6de50>, 'BlockChunk': <class 'dinov2.models.vision_transformer.BlockChunk'>, 'DinoVisionTransformer': <class 'dinov2.models.vision_transformer.DinoVisionTransformer'>, 'init_weights_vit_timm': <function init_weights_vit_timm at 0x7f65835d53a0>, 'vit_small': <function vit_small at 0x7f6623d3b040>, 'vit_base': <function vit_base at 0x7f6623d3b0d0>, 'vit_large': <function vit_large at 0x7f6623d3b160>, 'vit_giant2': <function vit_giant2 at 0x7f6623d3b1f0>}
+        
+
+6. Define a distributed train function that wraps the model in FSDP
+# FSDP_wrapper : dinov2/dinov2/fsdp/__init__.py ==> sharding_strategy, mixed_precision_config, return FSDP wrapper
+    self.student[k]:backbone  get_fsdp_wrapper...
+    fsdp_wrapper_sharding_strategy_config: ShardingStrategy.SHARD_GRAD_OP
+    fsdp_wrapper_local_rank:  0
+    self.teacher[k]:backbone  get_fsdp_wrapper...
+    fsdp_wrapper_sharding_strategy_config: ShardingStrategy.SHARD_GRAD_OP
+    fsdp_wrapper_local_rank:  0
+    prepare_for_distributed_training(synchronize all student subnetworks across gpus):  dino_head
+    self.student[k]:dino_head  get_fsdp_wrapper...
+    fsdp_wrapper_sharding_strategy_config: ShardingStrategy.SHARD_GRAD_OP
+    fsdp_wrapper_local_rank:  0
+    self.teacher[k]:dino_head  get_fsdp_wrapper...
+    fsdp_wrapper_sharding_strategy_config: ShardingStrategy.SHARD_GRAD_OP
+    fsdp_wrapper_local_rank:  0
+
+
+7. do_train()
+# build_optimizer
+
+# checkpointer
+    ## dinov2.fsdp.FSDPCheckpointer ==> inherit from fvcore.common.checkpoint.Checkpointer
+        ###fvcore.common.checkpoint.Checkpointer ==>A checkpointer that can save/load model as well as extra checkpointable
+    ## fvcore.common.checkpoint.PeriodicCheckpointer with OFFICIAL_EPOCH_LENGTH
+    
+# setup data preprocessing 
+    ## mask_generator: dinov2.data.MaskingGenerator ==> for make collate_fn ==> for make loader
+    ## transform: dinov2.data.DataAugmentationDINO ==> for make dataset ==> for make loader    
+    ## collate_fn: dinov2.data.collate_data_and_cast() with mask_generator ==> for make loader ==>output {
+        "collated_global_crops": collated_global_crops.to(dtype),
+        "collated_local_crops": collated_local_crops.to(dtype),
+        "collated_masks": collated_masks,
+        "mask_indices_list": mask_indices_list,
+        "masks_weight": masks_weight,
+        "upperbound": upperbound,
+        "n_masked_patches": torch.full((1,), fill_value=mask_indices_list.shape[0], dtype=torch.long),
+    }
+    
+# setup data loader  (dinov2/data/loader.py => SamplerType, make_data_loader, make_dataset)
+    ## make_dataset() (with transform)
+        ### from .datasets import ImageNet ==> class ImageNet 
+    ## make_data_loader() 
+        ### sampler_type = SamplerType.SHARDED_INFINITE  (own class ShardedInfiniteSampler(Sampler) from dinov2/data/sampler.py) 
+            #### _make_sampler()
+        ### collate_fn 
+        ### dataset (dict_keys(['global_crops', 'global_crops_teacher', 'local_crops', 'offsets']))
+        ### batch size etc
+           
+8. do_test()
+# just save teacher checkpoint in choosen iteration

@@ -8,8 +8,8 @@ import os
 import sys
 
 from dinov2.logging import setup_logging
-from dinov2.train import get_args_parser as get_train_args_parser
-from dinov2.run.submit import get_args_parser, submit_jobs
+from dinov2.train import get_args_parser as get_train_args_parser #--config-file, --output-dir
+from dinov2.run.submit import get_args_parser, submit_jobs #--nodes
 
 
 logger = logging.getLogger("dinov2")
@@ -23,7 +23,7 @@ class Trainer(object):
         from dinov2.train import main as train_main
 
         self._setup_args()
-        train_main(self.args)
+        train_main(self.args) #model, eval:FSDPCheckpointer, do_train
 
     def checkpoint(self):
         import submitit
@@ -42,11 +42,13 @@ class Trainer(object):
 
 
 def main():
+    #export PYTHONPATH=$PYTHONPATH:/home/jovyan/dinov2
     description = "Submitit launcher for DINOv2 training"
     train_args_parser = get_train_args_parser(add_help=False)
     parents = [train_args_parser]
     args_parser = get_args_parser(description=description, parents=parents)
     args = args_parser.parse_args()
+    print('input args:',args)
 
     setup_logging()
 

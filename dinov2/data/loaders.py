@@ -10,7 +10,7 @@ from typing import Any, Callable, List, Optional, TypeVar
 import torch
 from torch.utils.data import Sampler
 
-from .datasets import ImageNet, ImageNet22k
+from .datasets import ImageNet, ImageNet22k, EyeDatasets #pu
 from .samplers import EpochSampler, InfiniteSampler, ShardedInfiniteSampler
 
 
@@ -41,27 +41,58 @@ def _make_sample_transform(image_transform: Optional[Callable] = None, target_tr
     return transform
 
 
-def _parse_dataset_str(dataset_str: str):
+def _parse_dataset_str(dataset_str: str): #pu
     tokens = dataset_str.split(":")
-
-    name = tokens[0]
+    #dataset_str='ImageNet:split=TRAIN:root=./dataset:extra=./dataset_extra'
+    #['ImageNet','split=TRAIN','root=./dataset','extra=./dataset_extra']
+    name = tokens[0] #'ImageNet'
     kwargs = {}
-
+    # print('dataset_str: ',dataset_str)
+    # print('name: ',name)
     for token in tokens[1:]:
-        key, value = token.split("=")
+        key, value = token.split("=") #e.g : key='extra', value ='./dataset_extra'
         assert key in ("root", "extra", "split")
-        kwargs[key] = value
-
+        kwargs[key] = value 
+    # print('kwargs:',kwargs) #kwargs: {'split': 'TRAIN', 'root': './dataset', 'extra': './dataset_extra'}
     if name == "ImageNet":
         class_ = ImageNet
         if "split" in kwargs:
-            kwargs["split"] = ImageNet.Split[kwargs["split"]]
+            kwargs["split"] = ImageNet.Split[kwargs["split"]] #_Split.TRAIN
     elif name == "ImageNet22k":
         class_ = ImageNet22k
+    elif name == "EyeDatasets":#pu
+        class_ = EyeDatasets
+        if "split" in kwargs:
+            kwargs["split"] = EyeDatasets.Split[kwargs["split"]] #_Split.TRAIN
     else:
         raise ValueError(f'Unsupported dataset "{name}"')
-
+    print('kwargs_final:',kwargs) #kwargs_final: {'split': <_Split.TRAIN: 'train'>, 'root': './dataset', 'extra': './dataset_extra'}
     return class_, kwargs
+
+# Original:
+# def _parse_dataset_str(dataset_str: str):
+#     tokens = dataset_str.split(":")
+#     #dataset_str='ImageNet:split=TRAIN:root=./dataset:extra=./dataset_extra'
+#     #['ImageNet','split=TRAIN','root=./dataset','extra=./dataset_extra']
+#     name = tokens[0] #'ImageNet'
+#     kwargs = {}
+#     print('dataset_str: ',dataset_str)
+#     print('name: ',name)
+#     for token in tokens[1:]:
+#         key, value = token.split("=") #e.g : key='extra', value ='./dataset_extra'
+#         assert key in ("root", "extra", "split")
+#         kwargs[key] = value 
+#     print('kwargs:',kwargs) #kwargs: {'split': 'TRAIN', 'root': './dataset', 'extra': './dataset_extra'}
+#     if name == "ImageNet":
+#         class_ = ImageNet
+#         if "split" in kwargs:
+#             kwargs["split"] = ImageNet.Split[kwargs["split"]] #_Split.TRAIN
+#     elif name == "ImageNet22k":
+#         class_ = ImageNet22k
+#     else:
+#         raise ValueError(f'Unsupported dataset "{name}"')
+#     print('kwargs_final:',kwargs) #kwargs_final: {'split': <_Split.TRAIN: 'train'>, 'root': './dataset', 'extra': './dataset_extra'}
+#     return class_, kwargs
 
 
 def make_dataset(
@@ -83,7 +114,9 @@ def make_dataset(
     """
     logger.info(f'using dataset: "{dataset_str}"')
 
-    class_, kwargs = _parse_dataset_str(dataset_str)
+    class_, kwargs = _parse_dataset_str(dataset_str) 
+    ##class_ = ImageNet
+    ##kwargs: {'split': <_Split.TRAIN: 'train'>, 'root': './dataset', 'extra': './dataset_extra'}
     dataset = class_(transform=transform, target_transform=target_transform, **kwargs)
 
     logger.info(f"# of dataset samples: {len(dataset):,d}")
@@ -108,7 +141,7 @@ def _make_sampler(
 ) -> Optional[Sampler]:
     sample_count = len(dataset)
 
-    if type == SamplerType.INFINITE:
+    if type == SamplerType.INFINITE: 
         logger.info("sampler: infinite")
         if size > 0:
             raise ValueError("sampler size > 0 is invalid")
@@ -119,7 +152,7 @@ def _make_sampler(
             advance=advance,
         )
     elif type in (SamplerType.SHARDED_INFINITE, SamplerType.SHARDED_INFINITE_NEW):
-        logger.info("sampler: sharded infinite")
+        logger.info("sampler: sharded infinite") ###
         if size > 0:
             raise ValueError("sampler size > 0 is invalid")
         # TODO: Remove support for old shuffling

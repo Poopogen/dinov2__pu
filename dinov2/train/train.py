@@ -54,7 +54,13 @@ For python-based LazyConfig, use "path.key=value".
         type=str,
         help="Output directory to save logs and checkpoints",
     )
-
+    
+    # ### added
+    # parser.add_argument(
+    #     "--local-rank", 
+    #     default=0, 
+    #     type=int, 
+    #     help="Variable for distributed computing.")
     return parser
 
 
@@ -121,7 +127,7 @@ def apply_optim_scheduler(optimizer, lr, wd, last_layer_lr):
 
 def do_test(cfg, model, iteration):
     new_state_dict = model.teacher.state_dict()
-
+    s_new_state_dict = model.student.state_dict()#pu
     if distributed.is_main_process():
         iterstring = str(iteration)
         eval_dir = os.path.join(cfg.train.output_dir, "eval", iterstring)
@@ -129,6 +135,10 @@ def do_test(cfg, model, iteration):
         # save teacher checkpoint
         teacher_ckp_path = os.path.join(eval_dir, "teacher_checkpoint.pth")
         torch.save({"teacher": new_state_dict}, teacher_ckp_path)
+
+        student_ckp_path = os.path.join(eval_dir, "student_checkpoint.pth") #pu
+        torch.save({"student": s_new_state_dict}, student_ckp_path)#pu
+
 
 
 def do_train(cfg, model, resume=False):
@@ -148,13 +158,18 @@ def do_train(cfg, model, resume=False):
     ) = build_schedulers(cfg)
 
     # checkpointer
+    #Fully-Sharded Data Parallel (FSDP): for a billion-parameter model such as our ViT-g. In order to reduce this memory footprint per GPU, we split the model replicas across GPUs
     checkpointer = FSDPCheckpointer(model, cfg.train.output_dir, optimizer=optimizer, save_to_disk=True)
-
+    
+    # load pretrain weight or not (cfg.MODEL.WEIGHTS as a weight path)
+    # If `resume` is False, load checkpoint from the given path.
     start_iter = checkpointer.resume_or_load(cfg.MODEL.WEIGHTS, resume=resume).get("iteration", -1) + 1
 
     OFFICIAL_EPOCH_LENGTH = cfg.train.OFFICIAL_EPOCH_LENGTH
     max_iter = cfg.optim.epochs * OFFICIAL_EPOCH_LENGTH
 
+    # Save checkpoints periodically. 
+    # When `.step(iteration)` is called, it will  execute `checkpointer.save` on the given checkpointer, if iteration is a multiple of period or if `max_iter` is reached.
     periodic_checkpointer = PeriodicCheckpointer(
         checkpointer,
         period=3 * OFFICIAL_EPOCH_LENGTH,
@@ -190,14 +205,14 @@ def do_train(cfg, model, resume=False):
     )
 
     # setup data loader
-
+    print('make_dataset-dataset_str:',cfg.train.dataset_path)
     dataset = make_dataset(
         dataset_str=cfg.train.dataset_path,
         transform=data_transform,
         target_transform=lambda _: (),
     )
     # sampler_type = SamplerType.INFINITE
-    sampler_type = SamplerType.SHARDED_INFINITE
+    sampler_type = SamplerType.SHARDED_INFINITE 
     data_loader = make_data_loader(
         dataset=dataset,
         batch_size=cfg.train.batch_size_per_gpu,
@@ -226,6 +241,14 @@ def do_train(cfg, model, resume=False):
         max_iter,
         start_iter,
     ):
+        
+        #print('\ndata:\n',data)
+
+        #print('\ndata.keys():',data.keys()) 
+        #data.keys(): dict_keys(['collated_global_crops', 'collated_local_crops', 'collated_masks', 'mask_indices_list', 'masks_weight', 'upperbound', 'n_masked_patches'])
+        # for d in list(data.keys()):
+        #     print('\n%s:'%d, data[d])
+
         current_batch_size = data["collated_global_crops"].shape[0] / 2
         if iteration > max_iter:
             return
@@ -296,10 +319,23 @@ def do_train(cfg, model, resume=False):
 
 def main(args):
     cfg = setup(args)
+    # os.system("echo %PYTORCH_CUDA_ALLOC_CONF%") #了解PYTORCH_CUDA_ALLOC_CONF環境變數是否有設定
+    #print('main_args: ',cfg,'\n')
+    print(os.environ)   
+    # # os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"
+    # print(os.system("echo %CUDA_VISIBLE_DEVICES%"))
+    # print('torch.cuda.device_count:',torch.cuda.device_count())
+    # print('torch.cuda.current_device:',torch.cuda.current_device())
+    # print(torch.device("cuda"))
 
+    # print('before model:')
+    # print(torch.cuda.memory_summary())
     model = SSLMetaArch(cfg).to(torch.device("cuda"))
-    model.prepare_for_distributed_training()
-
+    # print('after model & before prepare_for_distributed_training:')
+    # print(torch.cuda.memory_summary())
+    model.prepare_for_distributed_training() #Define a distributed train function that wraps the model in FSDP
+    # print('after prepare_for_distributed_training:')
+    # print(torch.cuda.memory_summary())
     logger.info("Model:\n{}".format(model))
     if args.eval_only:
         iteration = (
@@ -315,4 +351,10 @@ def main(args):
 
 if __name__ == "__main__":
     args = get_args_parser(add_help=True).parse_args()
+    print('initial_args: ',args)
+    # # enable memory history, which will
+    # # add tracebacks and event history to snapshots
+    # torch.cuda.memory._record_memory_history(max_entries=100000)
     main(args)
+    # torch.cuda.memory._dump_snapshot("/home/jovyan/dinov2/my_snapshot.pickle")
+    

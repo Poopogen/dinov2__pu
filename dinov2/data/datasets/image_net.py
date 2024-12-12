@@ -18,18 +18,25 @@ logger = logging.getLogger("dinov2")
 _Target = int
 
 
-class _Split(Enum):
-    TRAIN = "train"
+class _Split(Enum): 
+    #Enum: https://docs.python.org/zh-tw/3.10/library/enum.html#functional-api
+    TRAIN = "train" 
     VAL = "val"
     TEST = "test"  # NOTE: torchvision does not support the test split
-
-    @property
+    # list(_Split)==>  [<_Split.TRAIN: 'train'>, <_Split.VAL: 'val'>, <_Split.TEST: 'test'>]
+    #_Split.TRAIN==> <_Split.TRAIN: 'train'>
+    @property  
     def length(self) -> int:
         split_lengths = {
-            _Split.TRAIN: 1_281_167,
-            _Split.VAL: 50_000,
-            _Split.TEST: 100_000,
+            _Split.TRAIN: 12,
+            _Split.VAL: 12,
+            _Split.TEST: 3,
         }
+        # split_lengths = {
+        #     _Split.TRAIN: 1_281_167,
+        #     _Split.VAL: 50_000,
+        #     _Split.TEST: 100_000,
+        # }
         return split_lengths[self]
 
     def get_dirname(self, class_id: Optional[str] = None) -> str:
@@ -53,13 +60,13 @@ class _Split(Enum):
 
 
 class ImageNet(ExtendedVisionDataset):
-    Target = Union[_Target]
+    Target = Union[_Target] #Union[int]  # Union==>用於多種型別
     Split = Union[_Split]
 
     def __init__(
         self,
         *,
-        split: "ImageNet.Split",
+        split: "ImageNet.Split", # _Split.TRAIN / _Split.VAL/ _Split.TEST
         root: str,
         extra: str,
         transforms: Optional[Callable] = None,
@@ -76,7 +83,7 @@ class ImageNet(ExtendedVisionDataset):
 
     @property
     def split(self) -> "ImageNet.Split":
-        return self._split
+        return self._split  # _Split.TRAIN / _Split.VAL/ _Split.TEST
 
     def _get_extra_full_path(self, extra_path: str) -> str:
         return os.path.join(self._extra_root, extra_path)
@@ -134,11 +141,11 @@ class ImageNet(ExtendedVisionDataset):
 
     def get_image_data(self, index: int) -> bytes:
         entries = self._get_entries()
-        actual_index = entries[index]["actual_index"]
+        actual_index = entries[index]["actual_index"] # 10159
 
-        class_id = self.get_class_id(index)
+        class_id = self.get_class_id(index) #'0'
 
-        image_relpath = self.split.get_image_relpath(actual_index, class_id)
+        image_relpath = self.split.get_image_relpath(actual_index, class_id) #if train=>  '0/0_10159'
         image_full_path = os.path.join(self.root, image_relpath)
         with open(image_full_path, mode="rb") as f:
             image_data = f.read()
@@ -165,6 +172,9 @@ class ImageNet(ExtendedVisionDataset):
 
     def __len__(self) -> int:
         entries = self._get_entries()
+        print(entries)
+        print('len(entries):',len(entries))
+        print('self.split.length:',self.split.length)
         assert len(entries) == self.split.length
         return len(entries)
 
@@ -184,7 +194,9 @@ class ImageNet(ExtendedVisionDataset):
         return labels
 
     def _dump_entries(self) -> None:
-        split = self.split
+        split = self.split   
+        # print('split:',split) # _Split.TRAIN / _Split.VAL/ _Split.TEST
+        # print(ImageNet.Split.TEST) # _Split.TEST
         if split == ImageNet.Split.TEST:
             dataset = None
             sample_count = split.length
@@ -253,8 +265,8 @@ class ImageNet(ExtendedVisionDataset):
         split = self.split
         if split == ImageNet.Split.TEST:
             return
-
-        entries_array = self._load_extra(self._entries_path)
+        #print('self._entries_path:',self._entries_path) #entries-TRAIN.npy
+        entries_array = self._load_extra(self._entries_path) #load entries-TRAIN.npy
 
         max_class_id_length, max_class_name_length, max_class_index = -1, -1, -1
         for entry in entries_array:

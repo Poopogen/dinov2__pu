@@ -43,9 +43,16 @@ class SSLMetaArch(nn.Module):
         logger.info(f"OPTIONS -- architecture : embed_dim: {embed_dim}")
 
         if cfg.student.pretrained_weights:
+            print('student_backbone:\n',student_backbone)
+            print('\nloading student pretrained_weights.... ')
             chkpt = torch.load(cfg.student.pretrained_weights)
+            print('\nchkpt.keys():\n ',chkpt.keys())
             logger.info(f"OPTIONS -- pretrained weights: loading from {cfg.student.pretrained_weights}")
-            student_backbone.load_state_dict(chkpt["model"], strict=False)
+            if "model" in chkpt.keys():
+                student_backbone.load_state_dict(chkpt["model"], strict=False)
+            else:
+                student_backbone.load_state_dict(chkpt, strict=False)
+            print('FINISHED loading student pretrained_weights.')
 
         self.embed_dim = embed_dim
         self.dino_out_dim = cfg.dino.head_n_prototypes
@@ -347,7 +354,7 @@ class SSLMetaArch(nn.Module):
 
     def fsdp_synchronize_streams(self):
         if self.need_to_synchronize_fsdp_streams:
-            torch.cuda.synchronize()
+            torch.cuda.synchronize() # Wait for all kernels in all streams on a CUDA device (current_device(), if device is None) to complete.
             self.student.dino_head._streams = (
                 self.teacher.dino_head._streams
             ) = self.student.backbone._streams = self.teacher.backbone._streams
@@ -393,8 +400,12 @@ class SSLMetaArch(nn.Module):
             raise NotImplementedError
         # below will synchronize all student subnetworks across gpus:
         for k, v in self.student.items():
+            print('prepare_for_distributed_training(synchronize all student subnetworks across gpus): ',k)
             self.teacher[k].load_state_dict(self.student[k].state_dict())
             student_model_cfg = self.cfg.compute_precision.student[k]
+            print('self.student[k]:%s  get_fsdp_wrapper...'%k)
+            #print(self.student[k])
             self.student[k] = get_fsdp_wrapper(student_model_cfg, modules_to_wrap={BlockChunk})(self.student[k])
             teacher_model_cfg = self.cfg.compute_precision.teacher[k]
+            print('self.teacher[k]:%s  get_fsdp_wrapper...'%k)
             self.teacher[k] = get_fsdp_wrapper(teacher_model_cfg, modules_to_wrap={BlockChunk})(self.teacher[k])

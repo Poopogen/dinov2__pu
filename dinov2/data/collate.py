@@ -10,6 +10,8 @@ import random
 def collate_data_and_cast(samples_list, mask_ratio_tuple, mask_probability, dtype, n_tokens=None, mask_generator=None):
     # dtype = torch.half  # TODO: Remove
 
+    # # print('len(samples_list[0]):',len(samples_list[0]))
+    # # print('samples_list[0][0].keys():',samples_list[0][0].keys())
     n_global_crops = len(samples_list[0][0]["global_crops"])
     n_local_crops = len(samples_list[0][0]["local_crops"])
 
@@ -26,7 +28,7 @@ def collate_data_and_cast(samples_list, mask_ratio_tuple, mask_probability, dtyp
     for i in range(0, n_samples_masked):
         prob_min = probs[i]
         prob_max = probs[i + 1]
-        masks_list.append(torch.BoolTensor(mask_generator(int(N * random.uniform(prob_min, prob_max)))))
+        masks_list.append(torch.BoolTensor(mask_generator(int(N * random.uniform(prob_min, prob_max))))) #MaskingGenerator.__call__()
         upperbound += int(N * prob_max)
     for i in range(n_samples_masked, B):
         masks_list.append(torch.BoolTensor(mask_generator(0)))
@@ -38,6 +40,14 @@ def collate_data_and_cast(samples_list, mask_ratio_tuple, mask_probability, dtyp
 
     masks_weight = (1 / collated_masks.sum(-1).clamp(min=1.0)).unsqueeze(-1).expand_as(collated_masks)[collated_masks]
 
+
+    # print('collated_global_crops.size():',collated_global_crops.size())
+    # print('collated_local_crops.size():',collated_local_crops.size())
+    # print('collated_masks.size():',collated_masks.size())
+    # print('mask_indices_list.size():',mask_indices_list.size())
+    # print('masks_weight.size():',masks_weight.size())
+    # print('upperbound:',upperbound)
+    # print('n_masked_patches:',torch.full((1,), fill_value=mask_indices_list.shape[0], dtype=torch.long))
     return {
         "collated_global_crops": collated_global_crops.to(dtype),
         "collated_local_crops": collated_local_crops.to(dtype),

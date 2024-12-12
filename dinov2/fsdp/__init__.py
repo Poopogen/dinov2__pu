@@ -39,9 +39,9 @@ def get_fsdp_wrapper(model_cfg, modules_to_wrap=set()):
     )
 
     sharding_strategy_config = sharding_strategy_dict[model_cfg.sharding_strategy]
-
+    print('fsdp_wrapper_sharding_strategy_config:',sharding_strategy_config)
     local_rank = distributed.get_local_rank()
-
+    print('fsdp_wrapper_local_rank: ',local_rank)
     fsdp_wrapper = partial(
         FSDP,
         sharding_strategy=sharding_strategy_config,
@@ -81,7 +81,7 @@ def reshard_fsdp_model(x):
 def rankstr():
     return f"rank_{distributed.get_global_rank()}"
 
-
+#fvcore.common.checkpoint.Checkpointer : A checkpointer that can save/load model as well as extra checkpointable objects.
 class FSDPCheckpointer(Checkpointer):
     def save(self, name: str, **kwargs: Any) -> None:
         """
@@ -95,7 +95,10 @@ class FSDPCheckpointer(Checkpointer):
             return
 
         data = {}
-        with FSDP.state_dict_type(self.model, StateDictType.LOCAL_STATE_DICT):
+
+        # You may notice that if you are using a single node, Dino will automatically revert to using normal data parallelism instead of fully sharded. 
+        # In this case, you may still get the local_state_dict error. You can also address this by using a full state dict instead of local state in dinov2/fsdp/__init__.py, changing to `with FSDP.state_dict_type(self.model, StateDictType.FULL_STATE_DICT):` instead of `with FSDP.state_dict_type(self.model, StateDictType.LOCAL_STATE_DICT):`
+        with FSDP.state_dict_type(self.model, StateDictType.FULL_STATE_DICT):#StateDictType.LOCAL_STATE_DICT
             data["model"] = self.model.state_dict()
 
         # data["model"] = self.model.state_dict()
@@ -112,7 +115,7 @@ class FSDPCheckpointer(Checkpointer):
         self.tag_last_checkpoint(basename)
 
     def load(self, *args, **kwargs):
-        with FSDP.state_dict_type(self.model, StateDictType.LOCAL_STATE_DICT):
+        with FSDP.state_dict_type(self.model, StateDictType.FULL_STATE_DICT):#StateDictType.LOCAL_STATE_DICT
             return super().load(*args, **kwargs)
 
     def has_checkpoint(self) -> bool:

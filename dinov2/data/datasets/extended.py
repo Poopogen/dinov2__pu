@@ -15,18 +15,18 @@ class ExtendedVisionDataset(VisionDataset):
         super().__init__(*args, **kwargs)  # type: ignore
 
     def get_image_data(self, index: int) -> bytes:
-        raise NotImplementedError
+        raise NotImplementedError #子類別ImageNet的實例化物件無法呼叫對應的get_image_data() function的時候才會報錯
 
     def get_target(self, index: int) -> Any:
-        raise NotImplementedError
+        raise NotImplementedError #子類別ImageNet的實例化物件無法呼叫對應的get_target() function的時候才會報錯
 
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
         try:
-            image_data = self.get_image_data(index)
+            image_data = self.get_image_data(index) # get entries[index]["actual_index"]
             image = ImageDataDecoder(image_data).decode()
         except Exception as e:
             raise RuntimeError(f"can not read image for sample {index}") from e
-        target = self.get_target(index)
+        target = self.get_target(index) # get entries[index]["class_index"]
         target = TargetDecoder(target).decode()
 
         if self.transforms is not None:

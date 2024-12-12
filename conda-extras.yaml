@@ -1,4 +1,4 @@
-name: dinov2-extras
+name: dinov2-extras_ori
 channels:
   - defaults
   - pytorch
